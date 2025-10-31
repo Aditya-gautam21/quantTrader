@@ -1,0 +1,39 @@
+# Data Processing
+pandas==2.2.0
+numpy==1.24.3
+scipy==1.11.0
+
+# Financial Data (Free)
+yfinance==0.2.32
+
+# Technical Analysis (Free & Open-Source)
+pandas-ta==0.3.14b0
+ta==0.11.0
+
+# RL Framework (Free)
+gymnasium==0.29.1
+stable-baselines3==2.2.1
+
+# LLM (Llama 3.2 Local - Free)
+ollama==0.1.10
+llama-cpp-python==0.2.21
+
+# News & RSS (Free)
+feedparser==6.0.11
+beautifulsoup4==4.12.2
+requests==2.31.0
+
+# NLP & Sentiment (Free & Open-Source)
+transformers==4.35.2
+torch==2.0.1
+
+# Backtesting (Free)
+backtrader==1.9.94.122
+
+# Visualization
+matplotlib==3.8.2
+plotly==5.18.0
+
+# Utilities
+python-dotenv==1.0.0
+tqdm==4.66.1
