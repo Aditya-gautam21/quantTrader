@@ -43,3 +43,19 @@ class MarketDataCollector:
     def get_latest_price(self, ticker):
         data = yf.download(ticker, period="1d")
         return data['Close'].iloc[-1]
+
+if __name__ == "__main__":
+    collector = MarketDataCollector()
+    historical = collector.download_historical_data(
+        tickers=['AAPL', 'MSFT', 'GOOGL'],
+        start_date='2021-10-30',
+        end_date='2025-10-30',
+        interval='1d'
+    )
+
+    print("\n Data Preview:")
+    print(historical.head())
+    print("\nData Info:")
+    print(historical.info())
+
+    print(f"\nPrice Range for AAPL: ${historical[('AAPL', 'Close')].min():.2f} - ${historical[('AAPL', 'Close')].max():.2f}")
