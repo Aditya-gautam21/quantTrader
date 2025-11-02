@@ -4,7 +4,7 @@ from pathlib import Path
 from datetime import datetime, timedelta
 
 class MarketDataCollector:
-    def __init__(self, data_dir="backend/data/raw"):  # Fixed backslashes to forward for portability
+    def __init__(self, data_dir="/raw"):
         self.data_dir = Path(data_dir)
         self.data_dir.mkdir(parents=True, exist_ok=True)
 
@@ -50,7 +50,7 @@ if __name__ == "__main__":
     historical = collector.download_historical_data(
         tickers=['AAPL', 'MSFT', 'GOOGL'],
         start_date='2021-10-30',
-        end_date='2025-10-30',  # Will fetch up to current date (Nov 2, 2025)
+        end_date='2025-10-30',
         interval='1d'
     )
 
