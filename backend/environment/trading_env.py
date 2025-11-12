@@ -79,12 +79,14 @@ class StockTradingEnv(gym.Env):
         macd = row.get('MACD', 0.5) if 'MACD' in row.index else 0.5
         sentiment = row.get('NEWS_SENTIMENT', 0.5) if 'NEWS_SENTIMENT' in row.index else 0.5
         portfolio_value = self.get_portfolio_value() / (self.initial_balance * 2)
-        shares_ratio = self.shares / max(1, self.initial_balance // price if price > 0 else 1)
+        shares_ratio = self.shares / max(1, self.initial_balance // max(price, 1) if price > 0 else 1)
         
-        return np.array(
-            [price, rsi, macd, sentiment, portfolio_value, shares_ratio],
-            dtype=np.float32
-        )
+        # Handle NaN values
+        obs = np.array([price, rsi, macd, sentiment, portfolio_value, shares_ratio], dtype=np.float32)
+        obs = np.nan_to_num(obs, nan=0.5, posinf=1.0, neginf=0.0)
+        obs = np.clip(obs, 0.0, 1.0)
+        
+        return obs
     
     def step(self, action):
         """Execute one step of trading"""

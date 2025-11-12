@@ -13,10 +13,10 @@ class TechnicalIndicators:
         print(f"\n Calculating technical indicators")
 
         if ticker:
-            close = df[(ticker, 'Close')]
-            high = df[(ticker, 'High')]
-            low = df[(ticker, 'Low')]
-            volume = df[(ticker, 'Volume')]
+            close = df[('Close', ticker)]
+            high = df[('High', ticker)]
+            low = df[('Low', ticker)]
+            volume = df[('Volume', ticker)]
         else:
             close = df['Close']
             high = df['High']
@@ -38,9 +38,14 @@ class TechnicalIndicators:
         
         # 3. Volatility Indicators
         bb = ta.bbands(close, length=20)
-        indicators['BB_UPPER'] = bb['BBU_20_2.0']
-        indicators['BB_LOWER'] = bb['BBL_20_2.0']
-        indicators['BB_MIDDLE'] = bb['BBM_20_2.0']
+        if bb is not None:
+            indicators['BB_UPPER'] = bb['BBU_20_2.0_2.0']
+            indicators['BB_LOWER'] = bb['BBL_20_2.0_2.0']
+            indicators['BB_MIDDLE'] = bb['BBM_20_2.0_2.0']
+        else:
+            indicators['BB_UPPER'] = 0
+            indicators['BB_LOWER'] = 0
+            indicators['BB_MIDDLE'] = 0
         
         # 4. Trend Indicators
         indicators['ADX_14'] = ta.adx(high, low, close)['ADX_14']
@@ -48,7 +53,7 @@ class TechnicalIndicators:
         # 5. Volume Indicators
         indicators['OBV'] = ta.obv(close, volume)
 
-        indicators = indicators.fillna(method='bfill').fillna(method='ffill')
+        indicators = indicators.bfill().ffill()
 
         print(f"Addedd {len(indicators.columns)} technical indicators")
         print(f"Indicators columns: {indicators.columns.tolist()}\n")

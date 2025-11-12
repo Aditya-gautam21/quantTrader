@@ -30,7 +30,7 @@ class OfflineTrainer:
         Returns:
             Trained model
         """
-        print(f"\n🚀 Training {agent_type} agent...")
+        print(f"\n[TRAIN] Training {agent_type} agent...")
         print(f"   Total timesteps: {total_timesteps}")
         
         # Create callbacks for checkpointing
@@ -102,7 +102,7 @@ class OfflineTrainer:
         # Save final model
         model_path = self.model_dir / f"pretrained_{agent_type.lower()}"
         model.save(str(model_path))
-        print(f"✅ Model saved to {model_path}.zip")
+        print(f"[OK] Model saved to {model_path}.zip")
         
         return model
     
@@ -122,7 +122,7 @@ class OfflineTrainer:
         return models
 
 if __name__ == "__main__":
-    print("📚 LEARNING MODULE 4: Train RL Agent on Historical Data\n")
+    print("[LEARN] LEARNING MODULE 4: Train RL Agent on Historical Data\n")
     
     from data.market_collector import MarketDataCollector
     from features.indicators import TechnicalIndicators
@@ -165,4 +165,4 @@ if __name__ == "__main__":
         total_timesteps=50000  # Reduce for faster testing
     )
     
-    print("\n✅ Training complete!")
+    print("\n[OK] Training complete!")

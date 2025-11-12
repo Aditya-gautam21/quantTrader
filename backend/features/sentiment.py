@@ -1,150 +1,133 @@
-import json
-import requests
-from datetime import datetime
+from typing import Dict, Any
+
+try:
+    from llama_cpp import Llama
+except ImportError as e:
+    raise SystemExit(
+        "llama-cpp-python is not installed.\n"
+        "Install CPU:   pip install llama-cpp-python\n"
+    ) from e
+
 
 class LlamaSentimentAnalyzer:
     """
-    Uses locally-running Llama 3.2 (via Ollama)
-    Completely FREE, completely private, no API keys needed!
+    Uses locally-running Llama via llama.cpp (llama-cpp-python).
+    Completely FREE, completely offline, no API keys.
     """
-    
-    def __init__(self, model="llama3.2:1b", ollama_host="http://localhost:11434"):
+
+    def __init__(
+        self,
+        model_path: str = r"C:\Users\ASUS\models\Llama-3.2-3B-Instruct-f16.gguf",
+        n_ctx: int = 2048,
+        n_threads: int = 4,
+        n_gpu_layers: int = 0,
+        verbose: bool = False,
+    ):
         """
-        Initialize sentiment analyzer with local Llama
-        
         Args:
-            model: llama3.2:1b or llama3.2:3b
-            ollama_host: Where Ollama is running
-        
-        Note: Make sure 'ollama serve' is running first!
+            model_path: Full path to GGUF file.
+            n_ctx: Context window tokens.
+            n_threads: CPU threads.
+            n_gpu_layers: GPU layers (0 = CPU only).
+            verbose: Print model info.
         """
-        self.model = model
-        self.ollama_host = ollama_host
-        self.api_endpoint = f"{ollama_host}/api/generate"
+        print(f"Loading model: {model_path}")
         
-        # Test connection
-        self._test_connection()
-    
-    def _test_connection(self):
-        """Test if Ollama is running"""
-        try:
-            response = requests.get(f"{self.ollama_host}/api/tags", timeout=5)
-            if response.status_code == 200:
-                print(f"✅ Connected to Ollama on {self.ollama_host}")
-                print(f"   Using model: {self.model}")
-            else:
-                print(f"❌ Ollama not responding properly")
-        except Exception as e:
-            print(f"❌ Cannot connect to Ollama on {self.ollama_host}")
-            print(f"   Make sure to run: ollama serve")
-            print(f"   Error: {e}")
-    
-    def analyze_sentiment(self, text):
-        """
-        Analyze sentiment of financial news using LOCAL Llama 3.2
+        self.llm = Llama(
+            model_path=model_path,
+            n_ctx=n_ctx,
+            n_threads=n_threads,
+            n_gpu_layers=n_gpu_layers,
+            verbose=verbose,
+        )
         
-        Args:
-            text: News headline or article text
-        
-        Returns:
-            {
-                'sentiment': 'bullish' | 'bearish' | 'neutral',
-                'score': float (-1.0 to 1.0),
-                'reasoning': str
-            }
-        """
-        
-        # Prompt engineered for financial sentiment
-        prompt = f"""You are a financial sentiment analyst. Analyze this news for stock trading impact.
+        print("Model loaded successfully")
+
+    def _build_prompt(self, text: str) -> str:
+        return f"""You are a financial sentiment analyst. Analyze this news for stock trading impact.
 
 News: "{text}"
 
-Respond in this EXACT format (important!):
+Respond in this EXACT format:
 SENTIMENT: [BULLISH/BEARISH/NEUTRAL]
 SCORE: [number from -1.0 to 1.0]
 REASONING: [one line reason]
 
 Remember: -1.0 = very bearish, 0 = neutral, 1.0 = very bullish"""
-        
+
+    def _parse_sentiment_response(self, response_text: str) -> Dict[str, Any]:
+        """Parse Llama's text into a structured result."""
         try:
-            # Call local Llama via Ollama
-            response = requests.post(
-                self.api_endpoint,
-                json={
-                    "model": self.model,
-                    "prompt": prompt,
-                    "stream": False,
-                    "temperature": 0.3,  # Low temp for consistent results
-                    "top_p": 0.9
-                },
-                timeout=30
-            )
-            
-            if response.status_code == 200:
-                result = response.json()
-                output = result['response']
-                return self._parse_sentiment_response(output)
-            else:
-                print(f"❌ Error: {response.status_code}")
-                return {'sentiment': 'neutral', 'score': 0.0, 'reasoning': 'API Error'}
-        
-        except requests.exceptions.ConnectionError:
-            print("❌ Cannot reach Ollama. Start it with: ollama serve")
-            return {'sentiment': 'neutral', 'score': 0.0, 'reasoning': 'Connection Error'}
-        except Exception as e:
-            print(f"❌ Error: {e}")
-            return {'sentiment': 'neutral', 'score': 0.0, 'reasoning': 'Error'}
-    
-    def _parse_sentiment_response(self, response):
-        """Parse Llama's response into structured format"""
-        try:
-            lines = response.strip().split('\n')
-            sentiment = None
+            lines = response_text.strip().splitlines()
+            sentiment = "neutral"
             score = 0.0
             reasoning = ""
-            
+
             for line in lines:
-                line = line.strip()
-                if line.startswith('SENTIMENT:'):
-                    sentiment = line.split(':')[1].strip().lower()
-                elif line.startswith('SCORE:'):
+                s = line.strip()
+                if s.upper().startswith("SENTIMENT:"):
+                    sentiment = s.split(":", 1)[1].strip().lower()
+                elif s.upper().startswith("SCORE:"):
                     try:
-                        score = float(line.split(':')[1].strip())
-                        score = max(-1.0, min(1.0, score))  # Clamp to [-1, 1]
-                    except:
+                        score = float(s.split(":", 1)[1].strip())
+                        score = max(-1.0, min(1.0, score))
+                    except Exception:
                         score = 0.0
-                elif line.startswith('REASONING:'):
-                    reasoning = line.split(':')[1].strip()
-            
+                elif s.upper().startswith("REASONING:"):
+                    reasoning = s.split(":", 1)[1].strip()
+
             return {
-                'sentiment': sentiment or 'neutral',
-                'score': score,
-                'reasoning': reasoning
+                "sentiment": sentiment,
+                "score": score,
+                "reasoning": reasoning,
             }
         except Exception as e:
             print(f"Parse error: {e}")
-            return {'sentiment': 'neutral', 'score': 0.0, 'reasoning': 'Parse error'}
+            return {"sentiment": "neutral", "score": 0.0, "reasoning": "Parse error"}
 
-# LEARNING EXERCISE
+    def analyze_sentiment(self, text: str) -> Dict[str, Any]:
+        """
+        Analyze sentiment of financial news using local llama.cpp.
+        """
+        prompt = self._build_prompt(text)
+
+        try:
+            out = self.llm.create_completion(
+                prompt=prompt,
+                temperature=0.3,
+                top_p=0.9,
+                max_tokens=256,
+                stop=None,
+            )
+
+            if "choices" in out and out["choices"]:
+                model_text = out["choices"][0].get("text", "").strip()
+            else:
+                model_text = ""
+
+            return self._parse_sentiment_response(model_text)
+        except Exception as e:
+            print(f"Error analyzing sentiment: {e}")
+            return {"sentiment": "neutral", "score": 0.0, "reasoning": "Analysis error"}
+
+
 if __name__ == "__main__":
-    print("🤖 Testing Local Llama 3.2 Sentiment Analysis\n")
-    
-    analyzer = LlamaSentimentAnalyzer(model="llama3.2:1b")
-    
-    # Test headlines
+    print("Testing Local Llama Sentiment Analysis\n")
+
+    analyzer = LlamaSentimentAnalyzer()
+
     test_headlines = [
         "Apple beats earnings expectations, stock rallies",
         "Tech stocks plunge amid recession fears",
         "Market remains stable as Fed pauses rate hikes",
         "GPU shortage expected to ease next quarter",
-        "Company reports massive losses, shares tumble"
+        "Company reports massive losses, shares tumble",
     ]
-    
-    print("📰 Analyzing financial headlines...\n")
-    
+
+    print("Analyzing financial headlines...\n")
     for headline in test_headlines:
-        print(f"📰 '{headline}'")
-        sentiment = analyzer.analyze_sentiment(headline)
-        print(f"   ✅ Sentiment: {sentiment['sentiment'].upper()}")
-        print(f"   📊 Score: {sentiment['score']:.2f}")
-        print(f"   💡 Reason: {sentiment['reasoning']}\n")
+        print(f"'{headline}'")
+        result = analyzer.analyze_sentiment(headline)
+        print(f"   Sentiment: {result['sentiment'].upper()}")
+        print(f"   Score: {result['score']:.2f}")
+        print(f"   Reason: {result['reasoning']}\n")
