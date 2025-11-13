@@ -17,7 +17,7 @@ class LlamaSentimentAnalyzer:
 
     def __init__(
         self,
-        model_path: str = r"C:\Users\ASUS\models\Llama-3.2-3B-Instruct-f16.gguf",
+        model_path: str = r"/home/adityagautam/Desktop/models/Llama-3.2-3B-Instruct-f16.gguf",
         n_ctx: int = 2048,
         n_threads: int = 4,
         n_gpu_layers: int = 0,
