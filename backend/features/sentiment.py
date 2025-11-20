@@ -1,36 +1,17 @@
 from typing import Dict, Any
-
-try:
-    from llama_cpp import Llama
-except ImportError as e:
-    raise SystemExit(
-        "llama-cpp-python is not installed.\n"
-        "Install CPU:   pip install llama-cpp-python\n"
-    ) from e
-
+from config import DEEPSEEK_MODEL
+from llama_cpp import Llama
+import os
 
 class LlamaSentimentAnalyzer:
-    """
-    Uses locally-running Llama via llama.cpp (llama-cpp-python).
-    Completely FREE, completely offline, no API keys.
-    """
-
     def __init__(
         self,
-        model_path: str = r"/home/adityagautam/Desktop/models/Llama-3.2-3B-Instruct-f16.gguf",
-        n_ctx: int = 2048,
-        n_threads: int = 4,
-        n_gpu_layers: int = 0,
+        model_path: str = DEEPSEEK_MODEL,
+        n_ctx: int = 4096,
+        n_threads: int = 6,
+        n_gpu_layers: int = 18,
         verbose: bool = False,
     ):
-        """
-        Args:
-            model_path: Full path to GGUF file.
-            n_ctx: Context window tokens.
-            n_threads: CPU threads.
-            n_gpu_layers: GPU layers (0 = CPU only).
-            verbose: Print model info.
-        """
         print(f"Loading model: {model_path}")
         
         self.llm = Llama(
@@ -56,7 +37,7 @@ REASONING: [one line reason]
 Remember: -1.0 = very bearish, 0 = neutral, 1.0 = very bullish"""
 
     def _parse_sentiment_response(self, response_text: str) -> Dict[str, Any]:
-        """Parse Llama's text into a structured result."""
+        """Parse model's text into a structured result."""
         try:
             lines = response_text.strip().splitlines()
             sentiment = "neutral"
@@ -87,7 +68,7 @@ Remember: -1.0 = very bearish, 0 = neutral, 1.0 = very bullish"""
 
     def analyze_sentiment(self, text: str) -> Dict[str, Any]:
         """
-        Analyze sentiment of financial news using local llama.cpp.
+        Analyze sentiment of financial news.
         """
         prompt = self._build_prompt(text)
 
