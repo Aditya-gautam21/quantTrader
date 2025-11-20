@@ -2,8 +2,8 @@ import os
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 from pathlib import Path
-from data.market_collector import MarketDataCollector
-from data.news_collector import NewsCollector
+from data_collector.market_collector import MarketDataCollector
+from data_collector.news_collector import NewsCollector
 from features.indicators import TechnicalIndicators
 from features.sentiment import LlamaSentimentAnalyzer
 from environment.trading_env import StockTradingEnv

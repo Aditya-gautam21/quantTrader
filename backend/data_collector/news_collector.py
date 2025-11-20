@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 class NewsCollector:
-    def __init__(self):
+    def __init__(self, data_dir="./raw_data/news"):
         self.rss_feeds={
             'cnbc': 'https://feeds.cnbc.com/cnbc/financialnews/',
             'marketwatch': 'https://feeds.marketwatch.com/marketwatch/topstories/',
@@ -12,6 +12,8 @@ class NewsCollector:
             'seeking_alpha': 'https://seekingalpha.com/feed.xml',
             'bloomberg': 'https://feeds.bloomberg.com/markets/news.rss'
         }
+        self.data_dir = Path(data_dir)
+        self.data_dir.mkdir(parents=True, exist_ok=True)
 
     def fetch_news(self, hours=6):
         cutoff_time = datetime.now() - timedelta(hours=hours)
@@ -46,9 +48,9 @@ class NewsCollector:
             
         return all_news
     
-    def save_news(self, news_items, filename="recent_news.csv"):
+    def save_news(self, news_items, filename=f"recent_news_{datetime.now().date()}.csv"):
         df = pd.DataFrame(news_items)
-        filepath = Path('./raw') / filename
+        filepath = self.data_dir / filename
         df.to_csv(filepath, index=False)
         print(f"\n Saved news to {filepath}, Total items: {len(df)}")
         return df

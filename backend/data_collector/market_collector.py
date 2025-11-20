@@ -4,7 +4,7 @@ from pathlib import Path
 from datetime import datetime, timedelta
 
 class MarketDataCollector:
-    def __init__(self, data_dir="./raw/historical_data"):
+    def __init__(self, data_dir="./raw_data/historical_data"):
         self.data_dir = Path(data_dir)
         self.data_dir.mkdir(parents=True, exist_ok=True)
 

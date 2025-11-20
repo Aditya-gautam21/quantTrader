@@ -4,7 +4,7 @@ import pandas_ta as ta
 from pathlib import Path
 
 class TechnicalIndicators:
-    def __init__(self, data_dir="./raw/indicators", norm_data_dir="./raw/normalized_indicators"):
+    def __init__(self, data_dir="./raw_data/indicators", norm_data_dir="./raw_data/normalized_indicators"):
         self.data_dir = Path(data_dir)
         self.data_dir.mkdir(parents=True, exist_ok=True)
 
@@ -95,7 +95,7 @@ class TechnicalIndicators:
         print(f"Saved {'normalized ' if is_normalized else ''}data to: {filepath}")
 
 if __name__ == "__main__":
-    from data.market_collector import MarketDataCollector
+    from data_collector.market_collector import MarketDataCollector
 
     # Load data
     collector = MarketDataCollector()

@@ -124,7 +124,7 @@ class OfflineTrainer:
 if __name__ == "__main__":
     print("[LEARN] LEARNING MODULE 4: Train RL Agent on Historical Data\n")
     
-    from data.market_collector import MarketDataCollector
+    from data_collector.market_collector import MarketDataCollector
     from features.indicators import TechnicalIndicators
     from features.aggregator import FeatureAggregator
     from environment.trading_env import StockTradingEnv
