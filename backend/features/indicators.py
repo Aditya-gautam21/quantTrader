@@ -2,9 +2,10 @@ import pandas as pd
 import numpy as np
 import pandas_ta as ta
 from pathlib import Path
+from datetime import datetime
 
 class TechnicalIndicators:
-    def __init__(self, data_dir="./raw_data/indicators", norm_data_dir="./raw_data/normalized_indicators"):
+    def __init__(self, data_dir="./raw_data", norm_data_dir="./raw_data/normalized_indicators"):
         self.data_dir = Path(data_dir)
         self.data_dir.mkdir(parents=True, exist_ok=True)
 
@@ -63,33 +64,56 @@ class TechnicalIndicators:
         return indicators
     
     @staticmethod
-    def normalize_indicators(indicators_df):
-        """Normalize indicators to [0, 1] range for RL agent"""
-        normalized = indicators_df.copy()
-        
-        for col in normalized.columns:
-            min_val = normalized[col].min()
-            max_val = normalized[col].max()
+    def normalize_indicators(df):
+        norm = df.copy()
+
+        if 'RSI_14' in norm.columns:
+            norm['RSI_14'] = norm['RSI_14'] / 100.0
             
-            if max_val > min_val:
-                normalized[col] = (normalized[col] - min_val) / (max_val - min_val)
-            else:
-                normalized[col] = 0.5
+        if 'ADX_14' in norm.columns:
+            norm['ADX_14'] = norm['ADX_14'] / 100.0
+
+        unbounded_cols = ['MACD', 'MACD_SIGNAL', 'OBV', 'CCI']
         
-        return normalized
+        for col in unbounded_cols:
+            if col in norm.columns:
+                rolling_mean = norm[col].rolling(window=60, min_periods=1).mean()
+                rolling_std = norm[col].rolling(window=60, min_periods=1).std()
+                norm[col] = ((norm[col] - rolling_mean) / (rolling_std + 1e-8)).clip(-3, 3)
+                
+            
+        price_col = 'Close' 
+        if price_col in norm.columns:
+            if 'SMA_20' in norm.columns:
+                norm['SMA_20'] = norm['Close'] / norm['SMA_20'] 
+            
+            if 'BB_UPPER' in norm.columns:
+                norm['BB_POSITION'] = (norm['Close'] - norm['BB_LOWER']) / (norm['BB_UPPER'] - norm['BB_LOWER'])
+                
+                norm.drop(columns=['BB_UPPER', 'BB_LOWER', 'BB_MIDDLE'], inplace=True)
+
+        return norm
     
     def save_indicators(self, df, ticker, is_normalized=False):
+        current_data_str = str(datetime.now().date())
+
+       
+
         if is_normalized:
             # Save to raw/normalized_indicators
+            ticker_dir = self.data_dir / current_data_str / ticker
+            ticker_dir.mkdir(parents=True, exist_ok=True)
             folder = self.norm_data_dir
             prefix = "normalized"
         else:
              # Save to raw/indicators
+            ticker_dir = self.data_dir / current_data_str / ticker
+            ticker_dir.mkdir(parents=True, exist_ok=True)
             folder = self.data_dir
             prefix = "indicators"
                 
         filename = f"{prefix}_{ticker}.csv"
-        filepath = folder / filename
+        filepath = ticker_dir / filename
             
         df.to_csv(filepath)
         print(f"Saved {'normalized ' if is_normalized else ''}data to: {filepath}")
