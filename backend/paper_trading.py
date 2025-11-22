@@ -37,7 +37,7 @@ with open('paper_trading_log.csv', mode='w', newline='') as file:
 
 print(f"Total Reward: {total_rewards}")
 
-# Plotting
+# Plotting the curve
 plt.plot(env.portfolio_values)
 plt.title('Portfolio Value over time')
 plt.xlabel('Time Step')
