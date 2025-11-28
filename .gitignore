@@ -1,2 +1,22 @@
 .env
 .env.*
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Environments
+.env
+venv/
+ENV/
+
+# Data
+raw_data/
+logs/
+*.csv
+
+# Models (large files)
+*.gguf
+*.bin
