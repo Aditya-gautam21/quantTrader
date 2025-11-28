@@ -8,8 +8,12 @@ from features.indicators import TechnicalIndicators
 from features.sentiment import LlamaSentimentAnalyzer
 from environment.trading_env import StockTradingEnv
 from agents.train_offline import OfflineTrainer
+import logging
+import sys
 
 def main():
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.INFO)
     """Run complete pipeline"""
     
     print("\n" + "="*70)
@@ -19,12 +23,16 @@ def main():
     # STEP 1: Download market data (FREE via yfinance)
     print("\n[DATA] STEP 1: Downloading market data from Yahoo Finance (FREE)...")
     collector = MarketDataCollector()
-    market_data = collector.download_historical_data(
-        tickers=['AAPL', 'MSFT'],
-        start_date='2023-01-01',
-        end_date='2024-10-30'
-    )
-    
+    try:
+        market_data = collector.download_historical_data(
+            tickers=['AAPL', 'MSFT'],
+            start_date='2023-01-01',
+            end_date='2024-10-30'
+        )
+    except Exception as e:
+        logger.error(f"Failed to download data: {e}")
+        sys.exit(1)
+        
     # STEP 2: Fetch financial news (FREE via RSS)
     print("\n[NEWS] STEP 2: Fetching financial news from RSS feeds (FREE)...")
     news_collector = NewsCollector()
