@@ -17,13 +17,26 @@ class MarketDataCollector:
         
         if isinstance(tickers, str):
             tickers = [tickers]
+        
+        # Validate ticker symbols to prevent path traversal
+        validated_tickers = []
+        for ticker in tickers:
+            # Only allow alphanumeric characters and common ticker symbols
+            if ticker and ticker.replace('.', '').replace('-', '').replace('^', '').isalnum() and len(ticker) <= 10:
+                validated_tickers.append(ticker.upper())
+            else:
+                print(f"Invalid ticker symbol: {ticker}")
+        
+        if not validated_tickers:
+            print("No valid ticker symbols provided")
+            return None
             
         downloaded_data = {}
 
-        print(f"Downloading data for {tickers}")
+        print(f"Downloading data for {validated_tickers}")
 
         data = None
-        for ticker in tickers:
+        for ticker in validated_tickers:
             try:
                 print(f"Downloading {ticker}")
 
@@ -56,15 +69,18 @@ class MarketDataCollector:
                 data.to_csv(filepath)
 
                 downloaded_data[ticker] = data
-            
                 print(f"Data saved to {filepath}")   
-                return downloaded_data             
                 
             except Exception as e:
-                print(f"Error downloading data: {e}")
-                return None
-            
+                print(f"Error downloading data for {ticker}: {e}")
+                continue
         
+        # Return all downloaded data after processing all tickers
+        if downloaded_data:
+            return downloaded_data
+        else:
+            print("No data was downloaded for any ticker")
+            return None
     
     def load_data(self, filename):
         filepath = self.data_dir / filename

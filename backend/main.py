@@ -51,7 +51,15 @@ def main():
     
     # STEP 4: Calculate technical indicators (FREE)
     print("\n[TECH] STEP 4: Calculating technical indicators (FREE)...")
-    indicators = TechnicalIndicators.calculate_indicators(market_data, ticker='AAPL')
+    # market_data is a dict, extract DataFrame for first ticker (or use AAPL if available)
+    if market_data is None or not market_data:
+        logger.error("No market data available")
+        sys.exit(1)
+    
+    # Use first available ticker or prefer AAPL
+    ticker = 'AAPL' if 'AAPL' in market_data else list(market_data.keys())[0]
+    data_df = market_data[ticker]
+    indicators = TechnicalIndicators.calculate_indicators(data_df)
     
     # STEP 5: Create trading environment (FREE - Gymnasium)
     print("\n[ENV] STEP 5: Creating Gymnasium trading environment (FREE)...")
