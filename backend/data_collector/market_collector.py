@@ -8,7 +8,7 @@ class MarketDataCollector:
         self.data_dir = Path(data_dir)
         self.data_dir.mkdir(parents=True, exist_ok=True)
 
-    def download_historical_data(self, tickers, start_date=None, end_date=None, interval="1d"):
+    def download_historical_data(self, tickers, start_date=None, end_date=datetime.now(), interval="1d"):
         if end_date is None:
             end_date = datetime.now().date()
             
@@ -91,12 +91,11 @@ class MarketDataCollector:
         return data['Close'].iloc[-1]
 
 if __name__ == "__main__":
-    tickers_input = input("What ticker to download?")
-    tickers = [tickers_input]
+    #tickers_input = input("What ticker to download?")
+    #tickers = [tickers_input]
     collector = MarketDataCollector()
     historical = collector.download_historical_data(
-        tickers,
-        start_date='2021-10-30',
-        end_date='2025-10-30',
-        interval='1d'
+        "AAPL",
+        start_date=datetime.now() -  timedelta(days = 730),
+        interval='4h'
     )

@@ -122,7 +122,9 @@ if __name__ == "__main__":
     from data_collector.market_collector import MarketDataCollector
 
     # Load data
-    collector = MarketDataCollector()
+    data_path = "raw_data/2026-01-07/BTC_USDT/historical_BTC_USDT.csv"
+    data = pd.read_csv(data_path)
+    '''collector = MarketDataCollector()
     data_dict = collector.download_historical_data(
         tickers=['AAPL'],
         start_date='2023-01-01',
@@ -130,11 +132,11 @@ if __name__ == "__main__":
     )
 
     if data_dict and 'AAPL' in data_dict:
-        data = data_dict['AAPL']
+        data = data_dict['AAPL']'''
     
     # Calculate indicators
     indicators = TechnicalIndicators.calculate_indicators(data)
     norm_indicators = TechnicalIndicators.normalize_indicators(indicators)
 
-    TechnicalIndicators().save_indicators(indicators, ticker='AAPL', is_normalized=False)
-    TechnicalIndicators().save_indicators(norm_indicators, ticker='AAPL', is_normalized=True)
+    TechnicalIndicators().save_indicators(indicators, ticker='BTCUSDT', is_normalized=False)
+    TechnicalIndicators().save_indicators(norm_indicators, ticker='BTCUSDT', is_normalized=True)

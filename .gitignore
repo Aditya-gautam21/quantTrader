@@ -20,3 +20,4 @@ logs/
 # Models (large files)
 *.gguf
 *.bin
+quantTrader-Learning-Guide.md
