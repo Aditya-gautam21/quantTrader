@@ -28,8 +28,8 @@ class TechnicalIndicators:
         indicators = pd.DataFrame(index=df.index)
 
         #1 Moving Averages
-        indicators['SMA_20'] = ta.sma(close, length=20)
-        indicators['SMA_50'] = ta.sma(close, length=50)
+        #indicators['SMA_20'] = ta.sma(close, length=20)
+        #indicators['SMA_50'] = ta.sma(close, length=50)
         indicators['EMA_12'] = ta.ema(close, length=12)
         indicators['EMA_26'] = ta.ema(close, length=26)
         
