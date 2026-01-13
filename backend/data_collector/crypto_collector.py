@@ -48,23 +48,30 @@ class CryptoDataCollector:
 
         df["Timestamp"] = pd.to_datetime(df["Timestamp"], unit="ms")
         df.set_index("Timestamp", inplace=True)
-        #df.drop(columns=["Timestamp"], inplace=True)
 
         # clean data
         df = df[~df.index.duplicated()]
         df = df.sort_index()
-
-        current_date = datetime.now().date().isoformat()
-        symbol_dir = self.data_dir / current_date / symbol.replace("/", "")
-        symbol_dir.mkdir(parents=True, exist_ok=True)
-
-        filepath = symbol_dir / f"historical_{symbol.replace('/', '')}.csv"
-        df.to_csv(filepath)
-
-        print(f"✅ Data saved to {filepath}")
+        
         print(f"📊 Rows: {len(df)} | From {df.index.min()} to {df.index.max()}")
 
         return df
+    
+    def save_data(self, df, symbol):
+        current_data_str = str(datetime.now().date())
+
+        # Save to raw/indicators
+        symbol_dir = self.data_dir / current_data_str
+        symbol_dir.mkdir(parents=True, exist_ok=True)
+        folder = self.data_dir
+        prefix = "historical"
+                
+        filename = f"{prefix}_{symbol}.csv"
+        filepath = symbol_dir / filename
+            
+        df.to_csv(filepath)
+        print(f"✅ Data saved to {filepath}")
+
 
 
 if __name__ == "__main__":

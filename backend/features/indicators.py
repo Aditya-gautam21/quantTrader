@@ -58,7 +58,6 @@ class TechnicalIndicators:
 
         # 7. Trend
         EMA21 = ta.ema(close, length=21)
-        indicators['EMA21_SLOPE'] = EMA21.diff() 
         indicators['PRICE_EMA21_DIST'] = close - EMA21
 
         # 8, Volatility

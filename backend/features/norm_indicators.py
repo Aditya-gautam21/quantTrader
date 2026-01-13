@@ -22,7 +22,7 @@ class NormalizedIndicators:
 
         unbounded = [
             'RET_1','RET_5','RET_15',
-            'EMA21_SLOPE','PRICE_EMA21_DIST',
+            'PRICE_EMA21_DIST',
             'MACD_HIST','ATR','RET_STD',
             'VOL','VWAP_DIST'
         ]
@@ -48,7 +48,7 @@ class NormalizedIndicators:
         print(f"Saved data to: {filepath}")
 
 if __name__ == '__main__':
-    data_path = "raw_data/2026-01-11/indicators_BTCUSDT.csv"
+    data_path = "raw_data/2026-01-12/indicators_BTCUSDT.csv"
     data = pd.read_csv(data_path, index_col=0, parse_dates=True)
     data.index.name = "Timestamp"    
 
