@@ -1,0 +1,36 @@
+{
+  "test_loss": 1.0052515268325806,
+  "test_rmse": 1.002622325121768,
+  "directional_accuracy": 0.5207756232686981,
+  "feature_cols": [
+    "RSI_14",
+    "MACD_HIST",
+    "BB_POSITION",
+    "RET_1",
+    "RET_5",
+    "RET_15",
+    "PRICE_EMA21_DIST",
+    "ATR",
+    "RET_STD",
+    "VOL",
+    "VWAP_DIST",
+    "BODY_ATR",
+    "UPPER_WICK_ATR",
+    "LOWER_WICK_ATR"
+  ],
+  "model_config": {
+    "input_size": 14,
+    "hidden_sizes": [
+      128,
+      64,
+      32
+    ],
+    "dropout": 0.3
+  },
+  "training_config": {
+    "batch_size": 64,
+    "epochs": 0,
+    "learning_rate": 0.001,
+    "weight_decay": 1e-05
+  }
+}
