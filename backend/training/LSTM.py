@@ -108,7 +108,7 @@ class SequenceDataset(torch.utils.data.Dataset):
         return len(self.features) - self.seq_length
     
     def __getitem__(self, idx):
-        x =self.features[idx:idx + self.seq_length]
+        x = ivself.features[idx:idx + self.seq_length]
 
         y = self.labels[idx + self.seq_length - 1]
 
