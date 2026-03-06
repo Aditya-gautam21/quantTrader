@@ -203,3 +203,7 @@ class SequenceDataset(torch.utils.data.Dataset):
               f'Val Acc: {val_acc:.2f}%')
             
         return model
+    
+if __name__ == '__main__':
+    lstm = LSTMTradingModel()
+    transformer = TransformerTradingModel()
