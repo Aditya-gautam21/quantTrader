@@ -1,0 +1,28 @@
+.env
+.env.*
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.idea/
+.vscode/
+*.ipynb_checkpoints
+
+# Environments
+.env
+venv/
+ENV/
+
+# Data
+raw_data/
+logs/
+*.csv
+temp_app/
+frontend/node_modules/
+
+# Models (large files)
+*.gguf
+*.bin
+quantTrader-Learning-Guide.md
