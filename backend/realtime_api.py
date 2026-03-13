@@ -15,7 +15,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from data_collector.crypto_collector import CryptoDataCollector
 from data_collector.crypto_news import NewsCollector
 from features.indicators import TechnicalIndicators
-from training.LSTM import LSTMTradingModel, TransformerTradingModel
+from models_loader import LSTMTradingModel, TransformerTradingModel
 
 app = FastAPI(title="QuantTrader Real-Time API")
 
@@ -57,14 +57,23 @@ def load_models():
         transformer_path = os.path.join(os.path.dirname(__file__), 'models', 'best_transformer.pth')
         
         if os.path.exists(lstm_path):
-            model_lstm.load_state_dict(torch.load(lstm_path, map_location=device))
+            model_lstm.load_state_dict(torch.load(lstm_path, map_location=device, weights_only=False))
             model_lstm.eval()
             logger.info("✓ LSTM model loaded")
+        else:
+            logger.warning(f"LSTM model not found at {lstm_path}")
         
         if os.path.exists(transformer_path):
-            model_transformer.load_state_dict(torch.load(transformer_path, map_location=device))
-            model_transformer.eval()
-            logger.info("✓ Transformer model loaded")
+            try:
+                model_transformer.load_state_dict(torch.load(transformer_path, map_location=device, weights_only=False))
+                model_transformer.eval()
+                logger.info("✓ Transformer model loaded")
+            except Exception as e:
+                logger.warning(f"Transformer model load failed: {e}")
+                model_transformer = None
+        else:
+            logger.warning(f"Transformer model not found at {transformer_path}")
+            model_transformer = None
         
         models_loaded = True
     except Exception as e:
@@ -83,14 +92,20 @@ def predict_signal(indicators_df):
         
         x = torch.FloatTensor(latest).unsqueeze(0)
         
+        lstm_signal = "HOLD"
+        trans_signal = "HOLD"
+        confidence = 0
+        
         with torch.no_grad():
-            lstm_out = model_lstm(x).squeeze().numpy()
-            trans_out = model_transformer(x).squeeze().numpy()
-        
-        lstm_signal = ["SELL", "HOLD", "BUY"][np.argmax(lstm_out)]
-        trans_signal = ["SELL", "HOLD", "BUY"][np.argmax(trans_out)]
-        
-        confidence = (np.max(lstm_out) + np.max(trans_out)) / 2 * 100
+            if model_lstm is not None:
+                lstm_out = model_lstm(x).squeeze().numpy()
+                lstm_signal = ["SELL", "HOLD", "BUY"][np.argmax(lstm_out)]
+                confidence = np.max(lstm_out) * 100
+            
+            if model_transformer is not None:
+                trans_out = model_transformer(x).squeeze().numpy()
+                trans_signal = ["SELL", "HOLD", "BUY"][np.argmax(trans_out)]
+                confidence = (confidence + np.max(trans_out) * 100) / 2
         
         return {
             "LSTM_Signal": lstm_signal,
@@ -116,6 +131,7 @@ def update_market_worker():
                 indicators = TechnicalIndicators.calculate_indicators(df)
                 if not indicators.empty:
                     predictions["BTC/USDT"] = predict_signal(indicators)
+                    logger.info(f"Predictions updated: {predictions['BTC/USDT']}")
                     
             time.sleep(300)  # 5 minutes
         except Exception as e:
@@ -131,7 +147,8 @@ def update_news_worker():
             logger.info("Fetching news...")
             news = collector.fetch_news(hours=6)
             if news:
-                news_data = news[:10]  # Keep latest 10
+                news_data = news[:10]
+                logger.info(f"News updated: {len(news_data)} items")
             time.sleep(3600)  # 1 hour
         except Exception as e:
             logger.error(f"News worker error: {e}")
@@ -146,7 +163,7 @@ def startup_event():
 
 @app.get("/")
 def root():
-    return {"status": "online", "service": "QuantTrader API"}
+    return {"status": "online", "service": "QuantTrader API", "models_loaded": models_loaded}
 
 @app.get("/api/market/{symbol:path}")
 def get_market_data(symbol: str):
