@@ -29,17 +29,52 @@ class QuantTraderEnv(gym.Env):
 
         self.current_step = window_size
         self.position = 0
-        self.entry_point = self.data("RET_1")[self.current_step-1]
-        self.balace = 10000
+        self.balance = 0
+        self.unrealised_pnl = 0
 
-    def reset(self):
-        self.current_step = 0
+        self.price_series = np.exp(self.data["RET_1"].cumsum())
+        self.entry_price = self.price_series.iloc[self.current_step - 1]
+        
+
+    def step(self, action):
+        reward = 0
+        done = False
+
+        prev_price = self._get_price(self.current_step-1)
+        curr_price = self._get_price(self.current_step)
+
+        price_change = (curr_price - prev_price)/prev_price
+
+        if action == 1:
+            position = 1
+            self.entry_price = curr_price
+
+        elif action == 2:
+            position = -1
+            self.entry_price = curr_price
+
+        reward = self.position * price_change
+
+        self.balance *= (1+reward)
+
+        self.current_step += 1
+        if self.current_step >= len(self.data) - 1:
+            done = True
+
+        obs = self._get_obs()
+        return obs, reward, done, False, {'balance': self.balance}
+    
+    def reset(self, seed=None, options=None):
+        super().reset(seed=seed)
+
+        self.current_step = self.window_size
+        self.position = 0
+        self.entry_price = 0.0
+        self.balance = 1.0
+
         obs = self._get_obs()
         return obs, {}
     
-    def step(self, action):
-        self.current_step+=1
-        return super().step(action)
     
 
     def _get_obs(self):
