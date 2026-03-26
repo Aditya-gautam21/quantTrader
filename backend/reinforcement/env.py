@@ -6,13 +6,6 @@ import pandas as pd
 import numpy as np
 from torch.utils.data import DataLoader
 
-#dataloader = DataLoader(dataset, shuffle=False)
-
-gym.register(
-    id = "QuantTrader-v0",
-    entry_point="reinforcement.env:QuantTraderEnv"
-)
-
 class QuantTraderEnv(gym.Env):
     metadata = {'render_mode': ["human"]}
     def __init__(self, render_mode=None, window_size = 20):
@@ -20,6 +13,8 @@ class QuantTraderEnv(gym.Env):
 
         data_dir = Path("raw_data/2026-03-10/recent_crypto_news.csv")
         self.data = pd.read_csv(data_dir, parse_dates=[0], index_col=0)
+
+        self.window_size = 20
 
         self.num_features = self.data.shape[1]
 
@@ -82,4 +77,30 @@ class QuantTraderEnv(gym.Env):
         end = self.current_step
 
         obs = self.data.iloc[start:end].values
-        return 
+        return obs
+    
+    def _get_price(self, step):
+        # You don't have raw price, so use proxy (RET_1 cumulative)
+        return np.exp(self.data["RET_1"].iloc[:step + 1].sum())
+
+    def render(self):
+        print(f"Step: {self.current_step}, Balance: {self.balance:.4f}, Position: {self.position}")
+
+gym.register(
+    id = "QuantTrader-v0",
+    entry_point="reinforcement.env:QuantTraderEnv"
+)
+
+if __name__ == "__main__":
+    env = gym.make("QuantTrader-v0", render_mode="human")
+
+    obs, info = env.reset()
+
+    for _ in range(50):
+        action = env.action_space.sample()
+        obs, reward, done, truncated, info = env.step(action)
+
+        env.render()
+
+        if done:
+            break
