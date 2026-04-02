@@ -91,16 +91,6 @@ class CryptoTradingEnv(gym.Env):
             self.current_step - self.window_size : self.current_step
         ].values.astype(np.float32)
 
-        # normalise OHLCV columns by the last close so they are scale-free
-        last_close = window[-1, self.obs_cols.index("Close")]
-        if last_close > 0:
-            for col in ("Open", "High", "Low", "Close"):
-                idx = self.obs_cols.index(col)
-                window[:, idx] /= last_close
-            vol_idx = self.obs_cols.index("Volume")
-            vol_mean = window[:, vol_idx].mean() + 1e-8
-            window[:, vol_idx] /= vol_mean
-
         # portfolio state (same value broadcast across window)
         pv = self._portfolio_value()
         unrealised_pnl = (
