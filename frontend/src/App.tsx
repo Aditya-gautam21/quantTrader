@@ -11,30 +11,54 @@ import {
 } from 'lucide-react';
 import { createChart, ColorType, Time, AreaSeries } from 'lightweight-charts';
 
-const generateInitialData = (minutesPerCandle: number) => {
-  const data = [];
-  const now = Math.floor(Date.now() / 1000);
-  let lastVal = 3500;
-  const intervalSeconds = minutesPerCandle * 60;
-  // 60 points for 60 intervals
-  for (let i = 60; i >= 0; i--) {
-    const time = (now - i * intervalSeconds) as Time;
-    lastVal = lastVal + (Math.random() - 0.48) * (10 * Math.sqrt(minutesPerCandle));
-    data.push({ time, value: lastVal });
-  }
-  return data;
-};
+import axios from 'axios';
+const API_URL = 'http://localhost:8000/api';
 
 function App() {
   const [timeframe, setTimeframe] = useState<number>(5);
-  const [tradeMode, setTradeMode] = useState<'buy' | 'sell'>('buy');
-  const [cryptAmount, setCryptAmount] = useState<string>('12.695');
-  const [fiatAmount, setFiatAmount] = useState<string>('9,853.00');
+  const [marketData, setMarketData] = useState<any[]>([]);
+  const [prediction, setPrediction] = useState<any>(null);
   
-  const [currentPrice, setCurrentPrice] = useState<number>(3615.86);
-  const [priceChange, setPriceChange] = useState<number>(3.27);
+  const [tradeMode, setTradeMode] = useState<'buy' | 'sell'>('buy');
+  const [cryptAmount, setCryptAmount] = useState<string>('0.05');
+  const [fiatAmount, setFiatAmount] = useState<string>('3000.00');
   
   const chartContainerRef = useRef<HTMLDivElement>(null);
+  
+  const currentPrice = marketData.length > 0 ? marketData[marketData.length - 1].value : 0;
+  
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [marketRes, predRes] = await Promise.all([
+          axios.get(`${API_URL}/market/BTC%2FUSDT`),
+          axios.get(`${API_URL}/predictions/BTC%2FUSDT`)
+        ]);
+
+        if (marketRes.data?.data) {
+          const formatted = marketRes.data.data.map((d: any) => ({
+            time: Math.floor(new Date(d.Timestamp).getTime() / 1000) as Time,
+            value: Number(d.Close)
+          }));
+          const uniqueData = Array.from(new Map(formatted.map((item: any) => [item.time, item])).values());
+          
+          uniqueData.sort((a: any, b: any) => a.time - b.time);
+          
+          setMarketData(uniqueData as any);
+        }
+
+        if (predRes.data?.prediction) {
+          setPrediction(predRes.data.prediction);
+        }
+      } catch (error) {
+        console.error("API error", error);
+      }
+    };
+    
+    fetchData();
+    const interval = setInterval(fetchData, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
@@ -76,31 +100,7 @@ function App() {
       lineWidth: 2,
     });
 
-    const initData = generateInitialData(timeframe);
-    newSeries.setData(initData);
-
-    let lastTime = initData[initData.length - 1].time as number;
-    let lastValue = initData[initData.length - 1].value;
-    setCurrentPrice(lastValue);
-
-    const intervalSeconds = timeframe * 60;
-
-    const interval = setInterval(() => {
-      const now = Math.floor(Date.now() / 1000);
-      lastValue = lastValue + (Math.random() - 0.45) * 5;
-      
-      // If we crossed into a new timeframe boundary, update the lastTime explicitly
-      if (now - lastTime >= intervalSeconds) {
-        lastTime = now - (now % intervalSeconds);
-      }
-      
-      newSeries.update({
-        time: lastTime as Time,
-        value: lastValue
-      });
-      
-      setCurrentPrice(lastValue);
-    }, 1000);
+    newSeries.setData(marketData);
 
     const handleResize = () => {
       if (chartContainerRef.current) {
@@ -112,11 +112,10 @@ function App() {
     handleResize();
 
     return () => {
-      clearInterval(interval);
       window.removeEventListener('resize', handleResize);
       chart.remove();
     };
-  }, [timeframe]);
+  }, [marketData]);
 
   return (
     <div className="app-window">
@@ -163,13 +162,13 @@ function App() {
               <div className="pair-title">
                 <div className="crypto-icon-group">
                   <div className="icon-1"><Activity size={18} color="white" /></div>
-                  <div className="icon-2"><div style={{fontSize: '12px', fontWeight: 'bold', color: 'white'}}>$</div></div>
+                  <div className="icon-2"><div style={{fontSize: '12px', fontWeight: 'bold', color: 'white'}}>₿</div></div>
                 </div>
-                ETH/USD <ChevronDown size={20} color="var(--text-muted)" />
+                BTC/USDT <ChevronDown size={20} color="var(--text-muted)" />
               </div>
               <div className="price-display">
                 <div className="price-value">${currentPrice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
-                <div className="price-change">{priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)}% today</div>
+                <div className="price-change">{prediction ? `${prediction.LSTM_Signal} Signal (${prediction.Confidence}%)` : 'Analyzing'}</div>
               </div>
             </div>
             
@@ -205,48 +204,41 @@ function App() {
             <thead>
               <tr>
                 <th>Exchange</th>
-                <th>BNB/USD</th>
-                <th>Amount</th>
-                <th>Diff</th>
-                <th style={{textAlign: 'right'}}>Volume</th>
+                <th>BTC/USDT Model</th>
+                <th>Confidence</th>
+                <th>Signal</th>
               </tr>
             </thead>
             <tbody>
               <tr>
                 <td>
                   <div className="exchange-cell">
-                    <img src="https://cryptologos.cc/logos/uniswap-uni-logo.svg?v=026" alt="UniSwap" style={{width:24, height:24}} />
-                    UniSwap
+                    <img src="https://cryptologos.cc/logos/bitcoin-btc-logo.svg?v=026" alt="QuantTrader" style={{width:24, height:24}} />
+                    LSTM Model
                   </div>
                 </td>
-                <td>3,615.32</td>
-                <td>1.6254 ETH</td>
-                <td><span className="tag-limited">Limited</span></td>
-                <td style={{textAlign: 'right'}}>$5,875.00</td>
+                <td>{prediction ? prediction.LSTM_Signal : 'Loading...'}</td>
+                <td>{prediction ? prediction.Confidence + '%' : '...'}</td>
+                <td>
+                  <span className={`tag-${prediction?.LSTM_Signal === 'BUY' ? 'rising' : prediction?.LSTM_Signal === 'SELL' ? 'limited' : 'trending'}`}>
+                    {prediction ? prediction.LSTM_Signal : 'HOLD'}
+                  </span>
+                </td>
               </tr>
               <tr>
                 <td>
                   <div className="exchange-cell">
-                    <img src="https://cryptologos.cc/logos/sushiswap-sushi-logo.svg?v=026" alt="SushiSwap" style={{width:24, height:24}} />
-                    SushiSwap
+                    <img src="https://cryptologos.cc/logos/bitcoin-btc-logo.svg?v=026" alt="QuantTrader" style={{width:24, height:24}} />
+                    Transformer Model
                   </div>
                 </td>
-                <td>3,617.12</td>
-                <td>1.6203 ETH</td>
-                <td><span className="tag-trending">Trending</span></td>
-                <td style={{textAlign: 'right'}}>$5,860.12</td>
-              </tr>
-              <tr>
+                <td>{prediction ? prediction.Transformer_Signal : 'Loading...'}</td>
+                <td>{prediction ? prediction.Confidence + '%' : '...'}</td>
                 <td>
-                  <div className="exchange-cell">
-                    <img src="https://cryptologos.cc/logos/pancakeswap-cake-logo.svg?v=026" alt="PancakeSwap" style={{width:24, height:24}} />
-                    PancakeSwap
-                  </div>
+                  <span className={`tag-${prediction?.Transformer_Signal === 'BUY' ? 'rising' : prediction?.Transformer_Signal === 'SELL' ? 'limited' : 'trending'}`}>
+                    {prediction ? prediction.Transformer_Signal : 'HOLD'}
+                  </span>
                 </td>
-                <td>3,620.00</td>
-                <td>1.5000 ETH</td>
-                <td><span className="tag-rising">Rising</span></td>
-                <td style={{textAlign: 'right'}}>$5,430.00</td>
               </tr>
             </tbody>
           </table>
@@ -286,7 +278,7 @@ function App() {
                   <div style={{width: 28, height: 28, borderRadius: '50%', background: '#3E8BFA', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
                     <Activity size={14} color="white" />
                   </div>
-                  ETH
+                  BTC
                 </div>
                 <input 
                   type="text" 
@@ -339,7 +331,7 @@ function App() {
           </div>
 
           <button className="btn-action-primary">
-            {tradeMode === 'buy' ? 'Buy ETH' : 'Sell ETH'}
+            {tradeMode === 'buy' ? 'Buy BTC' : 'Sell BTC'}
           </button>
           
           <button className="btn-action-secondary">
@@ -349,7 +341,7 @@ function App() {
           <div className="summary-card">
             <div className="summary-header">Available Balance</div>
             <div className="summary-balance">
-              293.0187 ETH <span className="summary-balance-pct">+7.45%</span>
+              1.0182 BTC <span className="summary-balance-pct">+7.45%</span>
             </div>
             
             <div className="summary-details">

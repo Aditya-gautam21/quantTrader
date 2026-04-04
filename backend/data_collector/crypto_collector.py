@@ -10,7 +10,10 @@ class CryptoDataCollector:
 
     def data_collection(self, symbol, timeframe="4h", since=None):
         exchange = ccxt.binance({
-            'enableRateLimit': True
+            'enableRateLimit': True,
+            'options': {
+                'adjustForTimeDifference': True,
+            }
         })
 
         if since is None:
