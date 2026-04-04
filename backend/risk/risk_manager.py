@@ -14,12 +14,14 @@ class RiskManager:
                  max_position_size: float = 0.1,  # 10% max per position
                  max_portfolio_risk: float = 0.02,  # 2% max portfolio risk
                  stop_loss_pct: float = 0.05,  # 5% stop loss
+                 take_profit_pct: float = 0.12,
                  max_drawdown: float = 0.15,  # 15% max drawdown
                  var_confidence: float = 0.05):  # 95% VaR
         
         self.max_position_size = max_position_size
         self.max_portfolio_risk = max_portfolio_risk
         self.stop_loss_pct = stop_loss_pct
+        self.take_profit_pct = take_profit_pct
         self.max_drawdown = max_drawdown
         self.var_confidence = var_confidence
         
@@ -53,12 +55,18 @@ class RiskManager:
         # Assume 1:1 risk-reward ratio for simplicity
         kelly_fraction = win_prob - lose_prob
         kelly_fraction = max(0, min(kelly_fraction, 0.25))  # Cap at 25%
+
+        winrate = .6
+        wl_ratio = self.take_profit_pct/self.stop_loss_pct
+
+        kelly_fraction_pct = winrate - ((1-winrate)/wl_ratio)
+        kelly_fraction_pct = max(0, min(kelly_fraction_pct, 0.25))
         
         # Volatility-based sizing
         vol_adjusted_size = self.max_portfolio_risk / max(volatility, 0.01)
         
         # Take minimum of Kelly, volatility-based, and max position size
-        position_size = min(kelly_fraction, vol_adjusted_size, self.max_position_size)
+        position_size = min(kelly_fraction_pct, vol_adjusted_size, self.max_position_size)
         
         return max(0, position_size)
     

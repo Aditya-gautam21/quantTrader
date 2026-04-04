@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   ChevronDown, 
   Settings, 
@@ -9,52 +9,114 @@ import {
   Activity,
   LogOut
 } from 'lucide-react';
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
+import { createChart, ColorType, Time, AreaSeries } from 'lightweight-charts';
 
-// Mock Chart Data to match the visual curve
-const chartData = [
-  { time: '2:00 AM', value: 3620 },
-  { time: '3:00 AM', value: 3560 },
-  { time: '4:00 AM', value: 3555 },
-  { time: '5:00 AM', value: 3610 },
-  { time: '6:00 AM', value: 3580 },
-  { time: '7:00 AM', value: 3530 },
-  { time: '8:00 AM', value: 3540 },
-  { time: '9:00 AM', value: 3560 },
-  { time: '10:00 AM', value: 3550 },
-  { time: '11:00 AM', value: 3570 },
-  { time: '12:00 PM', value: 3580 },
-  { time: '1:00 PM', value: 3590 },
-  { time: '2:00 PM', value: 3615.86 },
-  { time: '3:00 PM', value: 3590 },
-  { time: '4:00 PM', value: 3630 },
-];
+const generateInitialData = (minutesPerCandle: number) => {
+  const data = [];
+  const now = Math.floor(Date.now() / 1000);
+  let lastVal = 3500;
+  const intervalSeconds = minutesPerCandle * 60;
+  // 60 points for 60 intervals
+  for (let i = 60; i >= 0; i--) {
+    const time = (now - i * intervalSeconds) as Time;
+    lastVal = lastVal + (Math.random() - 0.48) * (10 * Math.sqrt(minutesPerCandle));
+    data.push({ time, value: lastVal });
+  }
+  return data;
+};
 
 function App() {
+  const [timeframe, setTimeframe] = useState<number>(5);
   const [tradeMode, setTradeMode] = useState<'buy' | 'sell'>('buy');
   const [cryptAmount, setCryptAmount] = useState<string>('12.695');
   const [fiatAmount, setFiatAmount] = useState<string>('9,853.00');
   
-  // Custom tooltip for chart
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div style={{
-          background: 'rgba(255, 255, 255, 0.1)',
-          backdropFilter: 'blur(10px)',
-          padding: '8px',
-          borderRadius: '8px',
-          border: '1px solid rgba(255, 255, 255, 0.2)',
-          color: 'white',
-          fontWeight: 600,
-          fontSize: '14px'
-        }}>
-          {payload[0].value.toFixed(2)}
-        </div>
-      );
-    }
-    return null;
-  };
+  const [currentPrice, setCurrentPrice] = useState<number>(3615.86);
+  const [priceChange, setPriceChange] = useState<number>(3.27);
+  
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!chartContainerRef.current) return;
+
+    const chart = createChart(chartContainerRef.current, {
+      layout: {
+        background: { type: ColorType.Solid, color: 'transparent' },
+        textColor: '#848A96',
+      },
+      grid: {
+        vertLines: { color: 'rgba(255, 255, 255, 0.03)' },
+        horzLines: { color: 'rgba(255, 255, 255, 0.03)' },
+      },
+      rightPriceScale: {
+        borderVisible: false,
+      },
+      timeScale: {
+        borderVisible: false,
+        timeVisible: true,
+      },
+      crosshair: {
+        vertLine: {
+          color: 'rgba(255, 255, 255, 0.1)',
+          width: 1,
+          style: 3,
+        },
+        horzLine: {
+          color: 'rgba(255, 255, 255, 0.1)',
+          width: 1,
+          style: 3,
+        },
+      },
+    });
+
+    const newSeries = chart.addSeries(AreaSeries, {
+      lineColor: '#DDF77D',
+      topColor: 'rgba(221, 247, 125, 0.3)',
+      bottomColor: 'rgba(221, 247, 125, 0.0)',
+      lineWidth: 2,
+    });
+
+    const initData = generateInitialData(timeframe);
+    newSeries.setData(initData);
+
+    let lastTime = initData[initData.length - 1].time as number;
+    let lastValue = initData[initData.length - 1].value;
+    setCurrentPrice(lastValue);
+
+    const intervalSeconds = timeframe * 60;
+
+    const interval = setInterval(() => {
+      const now = Math.floor(Date.now() / 1000);
+      lastValue = lastValue + (Math.random() - 0.45) * 5;
+      
+      // If we crossed into a new timeframe boundary, update the lastTime explicitly
+      if (now - lastTime >= intervalSeconds) {
+        lastTime = now - (now % intervalSeconds);
+      }
+      
+      newSeries.update({
+        time: lastTime as Time,
+        value: lastValue
+      });
+      
+      setCurrentPrice(lastValue);
+    }, 1000);
+
+    const handleResize = () => {
+      if (chartContainerRef.current) {
+        chart.applyOptions({ width: chartContainerRef.current.clientWidth });
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    handleResize();
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('resize', handleResize);
+      chart.remove();
+    };
+  }, [timeframe]);
 
   return (
     <div className="app-window">
@@ -106,8 +168,8 @@ function App() {
                 ETH/USD <ChevronDown size={20} color="var(--text-muted)" />
               </div>
               <div className="price-display">
-                <div className="price-value">$3,615.86</div>
-                <div className="price-change">+3.27% today</div>
+                <div className="price-value">${currentPrice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                <div className="price-change">{priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)}% today</div>
               </div>
             </div>
             
@@ -117,55 +179,26 @@ function App() {
                 <button className="tool-btn"><Settings size={18} /></button>
               </div>
               <div className="chart-filters">
-                <button className="chart-filter-btn">1h</button>
-                <button className="chart-filter-btn">24h</button>
-                <button className="chart-filter-btn">1w</button>
-                <button className="chart-filter-btn active">1m</button>
+                {[
+                  { label: '1m', value: 1 },
+                  { label: '5m', value: 5 },
+                  { label: '15m', value: 15 },
+                  { label: '1h', value: 60 },
+                  { label: '4h', value: 240 }
+                ].map((tf) => (
+                  <button 
+                    key={tf.label}
+                    className={`chart-filter-btn ${timeframe === tf.value ? 'active' : ''}`}
+                    onClick={() => setTimeframe(tf.value)}
+                  >
+                    {tf.label}
+                  </button>
+                ))}
               </div>
             </div>
           </div>
 
-          <div className="chart-container">
-             <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={chartData} margin={{ top: 20, right: 0, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#DDF77D" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#DDF77D" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.03)" />
-                  <XAxis 
-                    dataKey="time" 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{fill: 'var(--text-muted)', fontSize: 12}}
-                    minTickGap={30}
-                    dy={10}
-                  />
-                  <YAxis 
-                    domain={['dataMin - 10', 'dataMax + 10']} 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{fill: 'var(--text-muted)', fontSize: 12}}
-                    tickFormatter={(val) => val.toFixed(2)}
-                    width={80}
-                    hide={false}
-                    orientation="left"
-                    dx={-10}
-                  />
-                  <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'rgba(255,255,255,0.1)', strokeWidth: 1, strokeDasharray: '3 3' }} />
-                  <Area 
-                    type="monotone" 
-                    dataKey="value" 
-                    stroke="#DDF77D" 
-                    strokeWidth={2.5}
-                    fill="url(#colorValue)" 
-                    activeDot={{ r: 6, fill: '#DDF77D', stroke: '#1A1D1F', strokeWidth: 2 }}
-                  />
-                </AreaChart>
-             </ResponsiveContainer>
+          <div className="chart-container" ref={chartContainerRef} style={{height: '300px', width: '100%', position: 'relative'}}>
           </div>
 
           <table className="exchanges-table">
