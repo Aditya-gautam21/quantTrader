@@ -12,11 +12,10 @@ import {
 import { createChart, ColorType, Time, AreaSeries } from 'lightweight-charts';
 
 import axios from 'axios';
-const API_URL = 'http://localhost:8000/api';
 
 function App() {
   const [timeframe, setTimeframe] = useState<number>(5);
-  const [marketData, setMarketData] = useState<any[]>([]);
+  const [currentPrice, setCurrentPrice] = useState<number>(0);
   const [prediction, setPrediction] = useState<any>(null);
   
   const [tradeMode, setTradeMode] = useState<'buy' | 'sell'>('buy');
@@ -24,42 +23,19 @@ function App() {
   const [fiatAmount, setFiatAmount] = useState<string>('3000.00');
   
   const chartContainerRef = useRef<HTMLDivElement>(null);
-  
-  const currentPrice = marketData.length > 0 ? marketData[marketData.length - 1].value : 0;
-  
+  const chartRef = useRef<any>(null);
+  const seriesRef = useRef<any>(null);
+
+  // Initialize mock prediction
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [marketRes, predRes] = await Promise.all([
-          axios.get(`${API_URL}/market/BTC%2FUSDT`),
-          axios.get(`${API_URL}/predictions/BTC%2FUSDT`)
-        ]);
-
-        if (marketRes.data?.data) {
-          const formatted = marketRes.data.data.map((d: any) => ({
-            time: Math.floor(new Date(d.Timestamp).getTime() / 1000) as Time,
-            value: Number(d.Close)
-          }));
-          const uniqueData = Array.from(new Map(formatted.map((item: any) => [item.time, item])).values());
-          
-          uniqueData.sort((a: any, b: any) => a.time - b.time);
-          
-          setMarketData(uniqueData as any);
-        }
-
-        if (predRes.data?.prediction) {
-          setPrediction(predRes.data.prediction);
-        }
-      } catch (error) {
-        console.error("API error", error);
-      }
-    };
-    
-    fetchData();
-    const interval = setInterval(fetchData, 60000);
-    return () => clearInterval(interval);
+    setPrediction({
+      LSTM_Signal: 'BUY',
+      Transformer_Signal: 'HOLD',
+      Confidence: 78.5
+    });
   }, []);
 
+  // Initialize chart only once
   useEffect(() => {
     if (!chartContainerRef.current) return;
 
@@ -100,7 +76,8 @@ function App() {
       lineWidth: 2,
     });
 
-    newSeries.setData(marketData);
+    chartRef.current = chart;
+    seriesRef.current = newSeries;
 
     const handleResize = () => {
       if (chartContainerRef.current) {
@@ -114,8 +91,68 @@ function App() {
     return () => {
       window.removeEventListener('resize', handleResize);
       chart.remove();
+      chartRef.current = null;
+      seriesRef.current = null;
     };
-  }, [marketData]);
+  }, []);
+
+  // Fetch Binance historical data and connect to websocket
+  useEffect(() => {
+    if (!seriesRef.current) return;
+
+    const intervalMap: Record<number, string> = {
+      1: '1m',
+      5: '5m',
+      15: '15m',
+      60: '1h',
+      240: '4h'
+    };
+    const binanceInterval = intervalMap[timeframe] || '5m';
+
+    let ws: WebSocket;
+
+    const fetchData = async () => {
+      try {
+        const res = await axios.get('https://api.binance.com/api/v3/klines', {
+          params: { symbol: 'BTCUSDT', interval: binanceInterval, limit: 1000 }
+        });
+        
+        const data = res.data.map((d: any) => ({
+          time: Math.floor(d[0] / 1000) as Time,
+          value: Number(d[4])
+        }));
+        
+        const uniqueData = Array.from(new Map(data.map((item: any) => [item.time, item])).values()) as any[];
+        uniqueData.sort((a: any, b: any) => a.time - b.time);
+        
+        seriesRef.current.setData(uniqueData);
+
+        if (uniqueData.length > 0) {
+          setCurrentPrice(uniqueData[uniqueData.length - 1].value);
+        }
+
+        ws = new WebSocket(`wss://stream.binance.com:9443/ws/btcusdt@kline_${binanceInterval}`);
+        ws.onmessage = (event) => {
+          const message = JSON.parse(event.data);
+          const candle = message.k;
+          if (candle) {
+            const time = Math.floor(candle.t / 1000) as Time;
+            const value = Number(candle.c);
+            seriesRef.current.update({ time, value });
+            setCurrentPrice(value);
+          }
+        };
+      } catch (error) {
+        console.error("Binance API error", error);
+      }
+    };
+    
+    fetchData();
+
+    return () => {
+      if (ws) ws.close();
+    };
+  }, [timeframe]);
 
   return (
     <div className="app-window">
