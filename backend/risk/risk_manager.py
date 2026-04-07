@@ -11,12 +11,12 @@ class RiskManager:
     """Comprehensive risk management for trading strategies"""
     
     def __init__(self, 
-                 max_position_size: float = 0.1,  # 10% max per position
-                 max_portfolio_risk: float = 0.02,  # 2% max portfolio risk
-                 stop_loss_pct: float = 0.05,  # 5% stop loss
+                 max_position_size: float = 0.1,  
+                 max_portfolio_risk: float = 0.02,  
+                 stop_loss_pct: float = 0.05,  
                  take_profit_pct: float = 0.12,
-                 max_drawdown: float = 0.15,  # 15% max drawdown
-                 var_confidence: float = 0.05):  # 95% VaR
+                 max_drawdown: float = 0.15,  
+                 var_confidence: float = 0.05): 
         
         self.max_position_size = max_position_size
         self.max_portfolio_risk = max_portfolio_risk
