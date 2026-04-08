@@ -1,15 +1,8 @@
-"""
-Risk Management Module for QuantTrader
-Implements position sizing, stop losses, and risk controls
-"""
-
 import numpy as np
 import pandas as pd
 from typing import Dict, Optional, Tuple
 
-class RiskManager:
-    """Comprehensive risk management for trading strategies"""
-    
+class RiskManager:    
     def __init__(self, 
                  max_position_size: float = 0.1,  
                  max_portfolio_risk: float = 0.02,  
@@ -17,7 +10,7 @@ class RiskManager:
                  take_profit_pct: float = 0.12,
                  max_drawdown: float = 0.15,  
                  var_confidence: float = 0.05): 
-        
+            
         self.max_position_size = max_position_size
         self.max_portfolio_risk = max_portfolio_risk
         self.stop_loss_pct = stop_loss_pct
@@ -35,18 +28,7 @@ class RiskManager:
                               entry_price: float,
                               volatility: float,
                               confidence: float = 0.5) -> float:
-        """
-        Calculate optimal position size using Kelly Criterion and risk limits
-        
-        Args:
-            portfolio_value: Current portfolio value
-            entry_price: Entry price for the position
-            volatility: Asset volatility (annualized)
-            confidence: Model confidence (0-1)
-        
-        Returns:
-            Position size as fraction of portfolio
-        """
+    
         # Kelly Criterion sizing (simplified)
         # f = (bp - q) / b where b=odds, p=win_prob, q=lose_prob
         win_prob = 0.5 + (confidence - 0.5) * 0.3  # Scale confidence to win probability
